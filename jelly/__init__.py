@@ -45,7 +45,7 @@ class Decoder(json.JSONDecoder):
         if "JELLY" in dct.keys():
             dct = dct["JELLY"]
             split = dct["class"].split(".")
-            m = __import__(".".join(split[:-1]))
+            m = __import__(".".join(split[:-1]), globals(), locals(), [split[-1]])
             print(m)
             print(dir(m))
             cls = getattr(m, split[-1])
