@@ -10,7 +10,6 @@ kwargs = {
         'description': '',
         'packages': ['jelly'],
         'zip_safe': False,
-        'scripts': ['scripts/cf'],
         }
 
 setup(**kwargs)
