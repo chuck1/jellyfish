@@ -50,6 +50,9 @@ class Encoder(json.JSONEncoder):
         if isinstance(obj, dict):
             return dict((k, self.default(v)) for k, v in obj.items())
 
+        if isinstance(obj, list):
+            return list(self.default(v) for v in obj)
+
         #return super().default(obj)
         return obj
 
