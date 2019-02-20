@@ -34,6 +34,10 @@ def test_1():
 
     assert e == {'JELLY': {'class': 'test_encode.Bar', 'state': {'a': {'JELLY': {'class': 'test_encode.Foo', 'state': {'a': 'hello'}}}}}}
 
+    d = jelly.decode(e)
+
+    assert isinstance(d, Bar)
+
 class ClassC(jelly.Serializable):
     def __init__(self):
         self.a = [Foo()]
@@ -47,5 +51,16 @@ def test_2():
     json.dumps(e)
 
     print(e)
+
+    d = jelly.decode(e)
+
+    assert isinstance(d, ClassC)
+    assert isinstance(d.a[0], Foo)
+
+
+
+
+
+
 
 

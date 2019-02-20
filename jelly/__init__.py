@@ -58,6 +58,24 @@ class Encoder(json.JSONEncoder):
         # let default implementation raise error
         return super().default(obj)
 
+def decode_jelly_object(dct):
+    dct = dct["JELLY"]
+    split = dct["class"].split(".")
+    m = __import__(".".join(split[:-1]), globals(), locals(), [split[-1]])
+    print(m)
+    print(dir(m))
+    cls = getattr(m, split[-1])
+    obj = cls.__new__(cls)
+
+    state_encoded = dct["state"]
+    state = decode(state_encoded)
+
+    if hasattr(obj, "__jellysetstate__"):
+        obj.__jellysetstate__(state)
+    else:
+        obj.__dict__.update(state)
+
+    return obj
 
 class Decoder(json.JSONDecoder):
     def __init__(self):
@@ -67,24 +85,26 @@ class Decoder(json.JSONDecoder):
         print(dct)
 
         if "JELLY" in dct.keys():
-            dct = dct["JELLY"]
-            split = dct["class"].split(".")
-            m = __import__(".".join(split[:-1]), globals(), locals(), [split[-1]])
-            print(m)
-            print(dir(m))
-            cls = getattr(m, split[-1])
-            obj = cls.__new__(cls)
-
-            state_encoded = dct["state"]
-            state = state_encoded
-
-            if hasattr(obj, "__jellysetstate__"):
-                obj.__jellysetstate__(state)
-            else:
-                obj.__dict__.update(state)
-            return obj
+            return decode_jelly_object(dct)
 
         return dct
+
+def decode(obj):
+    """
+    obj: json-serializable object
+    
+    return an object
+    """
+    if isinstance(obj, dict):
+        if "JELLY" in obj.keys():
+            return decode_jelly_object(obj)
+
+        return dict((k, decode(v)) for k, v in obj.items())
+
+    if isinstance(obj, list):
+        return list(decode(v) for v in obj)
+
+    return obj   
 
 def encode(obj):
     return Encoder().default(obj)
