@@ -53,8 +53,10 @@ class Encoder(json.JSONEncoder):
         if isinstance(obj, list):
             return list(self.default(v) for v in obj)
 
-        #return super().default(obj)
-        return obj
+        if isinstance(obj, (int, float, bool, str)): return obj
+
+        # let default implementation raise error
+        return super().default(obj)
 
 
 class Decoder(json.JSONDecoder):

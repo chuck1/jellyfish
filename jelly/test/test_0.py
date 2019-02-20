@@ -23,7 +23,7 @@ def test_1():
 
     foo = Foo()
 
-    with pytest.raises(ValueError) as excinfo:
+    with pytest.raises(TypeError) as excinfo:
         jelly.dumps(foo)
 
 
