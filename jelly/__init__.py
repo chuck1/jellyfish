@@ -15,17 +15,17 @@ def qualified_class_name(o):
         return module + '.' + o.__class__.__name__
 
 class Serializable:
-    def __encode__(self, encode):
+    def __encode__(self, encoder):
         """
         should return a json-serializable object
         """
        
         if hasattr(self, "__jellygetstate__"):
-            state = self.__jellygetstate__(encode)
+            state = self.__jellygetstate__(encoder)
         else:
             state = dict(self.__dict__)
 
-        state_encoded = encode(state)
+        state_encoded = encoder.encode(state)
 
         body = {
                 "class": qualified_class_name(self), 
@@ -38,25 +38,24 @@ class Serializable:
 
         return dct
 
-class Encoder(json.JSONEncoder):
-    def default(self, obj):
+class Encoder:
+    def encode(self, obj):
         """
         should return a json-serializable object
         """
 
         if hasattr(obj, "__encode__"):
-            return obj.__encode__(self.default)
+            return obj.__encode__(self)
 
         if isinstance(obj, dict):
-            return dict((k, self.default(v)) for k, v in obj.items())
+            return dict((k, self.encode(v)) for k, v in obj.items())
 
         if isinstance(obj, list):
-            return list(self.default(v) for v in obj)
+            return list(self.encode(v) for v in obj)
 
         if isinstance(obj, (int, float, bool, str)): return obj
 
-        # let default implementation raise error
-        return super().default(obj)
+        raise TypeError()
 
 def decode_jelly_object(dct):
     dct = dct["JELLY"]
@@ -77,17 +76,7 @@ def decode_jelly_object(dct):
 
     return obj
 
-class Decoder(json.JSONDecoder):
-    def __init__(self):
-        super().__init__(object_hook=self.object_hook)
-
-    def object_hook(self, dct):
-        print(dct)
-
-        if "JELLY" in dct.keys():
-            return decode_jelly_object(dct)
-
-        return dct
+class Decoder: pass
 
 def decode(obj):
     """
@@ -107,13 +96,13 @@ def decode(obj):
     return obj   
 
 def encode(obj):
-    return Encoder().default(obj)
+    return Encoder().encode(obj)
 
 def dumps(obj):
-    return json.dumps(obj, cls=Encoder)
+    return json.dumps(encode(obj))
 
 def loads(s):
-    return json.loads(s, cls=Decoder)    
+    return decode(json.loads(s))
 
 
 
