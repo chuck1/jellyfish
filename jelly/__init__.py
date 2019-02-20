@@ -16,23 +16,42 @@ def qualified_class_name(o):
 
 class Serializable:
     def __encode__(self, encode):
+        """
+        should return a json-serializable object
+        """
+       
         if hasattr(self, "__jellygetstate__"):
             state = self.__jellygetstate__(encode)
         else:
             state = dict(self.__dict__)
 
+        state_encoded = encode(state)
+
         body = {
                 "class": qualified_class_name(self), 
-                "state": state,
+                "state": state_encoded,
                 }
         dct = {"JELLY": body}
+
+        # debug
+        #json.dumps(dct)
+
         return dct
 
 class Encoder(json.JSONEncoder):
     def default(self, obj):
+        """
+        should return a json-serializable object
+        """
+
         if hasattr(obj, "__encode__"):
             return obj.__encode__(self.default)
-        return super().default(obj)
+
+        if isinstance(obj, dict):
+            return dict((k, self.default(v)) for k, v in obj.items())
+
+        #return super().default(obj)
+        return obj
 
 
 class Decoder(json.JSONDecoder):
@@ -50,17 +69,31 @@ class Decoder(json.JSONDecoder):
             print(dir(m))
             cls = getattr(m, split[-1])
             obj = cls.__new__(cls)
+
+            state_encoded = dct["state"]
+            state = state_encoded
+
             if hasattr(obj, "__jellysetstate__"):
-                obj.__jellysetstate__(dct["state"])
+                obj.__jellysetstate__(state)
             else:
-                obj.__dict__.update(dct["state"])
+                obj.__dict__.update(state)
             return obj
 
         return dct
+
+def encode(obj):
+    return Encoder().default(obj)
 
 def dumps(obj):
     return json.dumps(obj, cls=Encoder)
 
 def loads(s):
     return json.loads(s, cls=Decoder)    
+
+
+
+
+
+
+
 
