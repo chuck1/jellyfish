@@ -55,6 +55,8 @@ class Encoder:
 
         if isinstance(obj, (int, float, bool, str)): return obj
 
+        if obj is None: return obj
+
         raise TypeError()
 
 def decode_jelly_object(dct):
@@ -76,24 +78,60 @@ def decode_jelly_object(dct):
 
     return obj
 
-class Decoder: pass
+class Decoder:
+    def decode(self, obj):
+        """
+        obj: json-serializable object
+        
+        return an object
+        """
+        if isinstance(obj, dict):
+            if "JELLY" in obj.keys():
+                return decode_jelly_object(obj)
+    
+            def _():
+                for k, v in obj.items():
+                    y = self.decode(v)
+                    print(repr(k), repr(v), repr(y))
+                    yield k, y
+
+            return dict(_())
+    
+        if isinstance(obj, list):
+            return list(decode(v) for v in obj)
+    
+        return obj   
+
+    async def adecode(self, obj):
+        """
+        obj: json-serializable object
+        
+        return an object
+        """
+        if isinstance(obj, dict):
+            if "JELLY" in obj.keys():
+                return decode_jelly_object(obj)
+    
+            async def _():
+                for k, v in obj.items():
+                    y = await self.adecode(v)
+                    print(repr(k), repr(v), repr(y))
+                    yield k, y
+
+            return dict([e async for e in _()])
+    
+        if isinstance(obj, list):
+
+            async def _():
+                for v in obj:
+                    yield await self.adecode(v)
+
+            return [e async for e in _()]
+    
+        return obj   
 
 def decode(obj):
-    """
-    obj: json-serializable object
-    
-    return an object
-    """
-    if isinstance(obj, dict):
-        if "JELLY" in obj.keys():
-            return decode_jelly_object(obj)
-
-        return dict((k, decode(v)) for k, v in obj.items())
-
-    if isinstance(obj, list):
-        return list(decode(v) for v in obj)
-
-    return obj   
+    return Decoder().decode(obj)
 
 def encode(obj):
     return Encoder().encode(obj)
